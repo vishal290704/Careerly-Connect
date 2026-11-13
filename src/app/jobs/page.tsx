@@ -1,0 +1,73 @@
+import { Search } from "lucide-react";
+import { connectToDatabase } from "@/lib/db";
+import { Job as JobModel } from "@/models/Job";
+import { jobs as sampleJobs } from "@/lib/jobs";
+import { JobCard } from "@/components/job-card";
+
+type Props = { searchParams: Promise<{ q?: string; category?: string }> };
+
+export default async function JobsPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const query = params.q?.toLowerCase() ?? "";
+  const category = params.category;
+  await connectToDatabase();
+  const records = await JobModel.find({ status: "PUBLISHED" }).sort({ publishedAt: -1, createdAt: -1 }).lean();
+  const source = records.length > 0 ? records.map((job) => ({
+    id: job._id.toString(), company: job.companyName, role: job.role, location: job.location,
+    mode: job.workMode, type: job.jobType, pay: job.stipend, batch: "Open to eligible applicants",
+    category: job.category, posted: "Recently", verified: false,
+  })) : sampleJobs;
+  const filtered = source.filter(
+    (job) =>
+      (!query ||
+        `${job.role} ${job.company} ${job.location} ${job.category}`
+          .toLowerCase()
+          .includes(query)) &&
+      (!category || job.category === category),
+  );
+  return (
+    <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
+      <div className="max-w-2xl">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal">
+          The opportunity desk
+        </p>
+        <h1 className="mt-3 font-newsreader text-5xl tracking-[-0.05em]">
+          Find work that fits.
+        </h1>
+        <p className="mt-4 text-muted">
+          A considered collection of roles for people building what comes next.
+        </p>
+      </div>
+      <form className="mt-9 flex max-w-3xl items-center gap-3 rounded-2xl border bg-surface p-2 shadow-soft">
+        <Search className="ml-3 text-muted" size={19} />
+        <input
+          name="q"
+          defaultValue={params.q}
+          placeholder="Search role, company, skill or location"
+          className="min-w-0 flex-1 bg-transparent px-2 py-3 text-sm outline-none placeholder:text-muted"
+        />
+        <button className="rounded-xl bg-teal px-5 py-3 text-sm font-semibold text-white">
+          Search
+        </button>
+      </form>
+      <div className="mt-12 flex items-center justify-between border-b pb-4">
+        <p className="text-sm text-muted">
+          {filtered.length} opportunities matching your search
+        </p>
+        <select className="rounded-lg border bg-surface px-3 py-2 text-sm outline-none">
+          <option>Latest first</option>
+          <option>Salary highest</option>
+        </select>
+      </div>
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        {filtered.slice(0, 2).map((job) => (
+          <JobCard key={job.id} job={job} />
+        ))}
+        {filtered.slice(2).map((job) => (
+          <JobCard key={job.id} job={job} locked />
+        ))}
+      </div>
+      {filtered.length === 0 && <p className="mt-10 rounded-2xl border bg-surface p-8 text-center text-muted">No published jobs match your search.</p>}
+    </main>
+  );
+}

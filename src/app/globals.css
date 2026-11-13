@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: 204 38% 15%;
+  --teal: 177 45% 29%;
+  --canvas: 45 26% 95%;
+  --surface: 0 0% 100%;
+  --secondary: 90 18% 93%;
+  --line: 90 12% 89%;
+  --muted: 204 8% 52%;
+  --accent: 35 42% 57%;
+}
+
+* { border-color: hsl(var(--line)); }
+html { scroll-behavior: smooth; }
+body {
+  background: hsl(var(--canvas));
+  color: hsl(var(--ink));
+  font-family: var(--font-dm-sans), sans-serif;
+}
+::selection { background: hsl(var(--teal) / 0.2); }
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}

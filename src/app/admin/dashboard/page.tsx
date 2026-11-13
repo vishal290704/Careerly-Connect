@@ -1,0 +1,8 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { isAdmin } from "@/lib/admin-auth";
+
+export default async function AdminDashboard() {
+  if (!(await isAdmin())) redirect("/admin/login");
+  return <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8"><p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal">Operations</p><h1 className="mt-3 font-newsreader text-5xl tracking-[-0.05em]">Admin dashboard.</h1><div className="mt-10 grid gap-4 md:grid-cols-4"><Link href="/admin/jobs" className="rounded-2xl border bg-surface p-6 transition hover:border-teal"><p className="text-sm text-muted">Content</p><h2 className="mt-2 text-xl font-semibold">Manage jobs</h2><p className="mt-2 text-sm text-muted">Create, publish, and close opportunities.</p></Link><Link href="/admin/payments" className="rounded-2xl border bg-surface p-6 transition hover:border-teal"><p className="text-sm text-muted">Revenue</p><h2 className="mt-2 text-xl font-semibold">Review payments</h2><p className="mt-2 text-sm text-muted">Review submitted payment proofs.</p></Link><Link href="/admin/applications" className="rounded-2xl border bg-surface p-6 transition hover:border-teal"><p className="text-sm text-muted">Activity</p><h2 className="mt-2 text-xl font-semibold">Applications</h2><p className="mt-2 text-sm text-muted">View recorded click-throughs.</p></Link><Link href="/admin/users" className="rounded-2xl border bg-surface p-6 transition hover:border-teal"><p className="text-sm text-muted">Community</p><h2 className="mt-2 text-xl font-semibold">Users</h2><p className="mt-2 text-sm text-muted">View registered account activity.</p></Link></div></main>;
+}

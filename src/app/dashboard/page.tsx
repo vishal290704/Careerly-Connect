@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/user-auth";
 import { connectToDatabase } from "@/lib/db";
 import { Application } from "@/models/Application";
+import "@/models/Job";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();

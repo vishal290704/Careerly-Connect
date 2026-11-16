@@ -12,6 +12,7 @@ const userSchema = new Schema({
   emailVerifiedAt: { type: Date },
   passwordResetTokenHash: { type: String },
   passwordResetExpiresAt: { type: Date },
+  sessionVersion: { type: Number, default: 0 },
   premiumExpiresAt: { type: Date },
   savedJobIds: [{ type: Schema.Types.ObjectId, ref: "Job" }],
   referralCode: { type: String, unique: true, sparse: true, uppercase: true },

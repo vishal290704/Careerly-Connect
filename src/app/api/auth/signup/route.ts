@@ -3,6 +3,7 @@ import argon2 from "argon2";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
+import { hasValidOrigin, isRateLimited } from "@/lib/security";
 
 const signupSchema = z.object({
   name: z.string().trim().min(2),
@@ -17,6 +18,8 @@ const signupSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    if (!hasValidOrigin(request)) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
+    if (isRateLimited(request, "signup", 5)) return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
     const contentType = request.headers.get("content-type") ?? "";
     const body = contentType.includes("application/json") ? await request.json() : Object.fromEntries((await request.formData()).entries());
     const data = signupSchema.parse(body);

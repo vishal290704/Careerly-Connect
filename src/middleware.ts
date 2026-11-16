@@ -14,13 +14,21 @@ async function validToken(token: string | undefined, audience: "admin" | "user")
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  let protectedRoute = false;
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    protectedRoute = true;
     if (!(await validToken(request.cookies.get("applyora_admin")?.value, "admin"))) return NextResponse.redirect(new URL("/admin/login", request.url));
   }
   if (pathname === "/dashboard" || pathname.startsWith("/referrals")) {
+    protectedRoute = true;
     if (!(await validToken(request.cookies.get("applyora_user")?.value, "user"))) return NextResponse.redirect(new URL("/login", request.url));
   }
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (protectedRoute) {
+    response.headers.set("Cache-Control", "no-store, private");
+    response.headers.set("Pragma", "no-cache");
+  }
+  return response;
 }
 
 export const config = {

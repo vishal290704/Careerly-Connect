@@ -12,7 +12,9 @@ function secret() {
 }
 
 export async function createUserSession(userId: string) {
-  return new SignJWT({ sub: userId, role: "user" })
+  await connectToDatabase();
+  const user = await User.findById(userId).select("sessionVersion");
+  return new SignJWT({ sub: userId, role: "user", ver: user?.sessionVersion ?? 0 })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("2h")
@@ -28,7 +30,9 @@ export async function getCurrentUser() {
     const { payload } = await jwtVerify(token, secret(), { issuer: "applyora", audience: "user" });
     if (!payload.sub) return null;
     await connectToDatabase();
-    return User.findById(payload.sub);
+    const user = await User.findById(payload.sub);
+    if (!user || payload.ver !== (user.sessionVersion ?? 0)) return null;
+    return user;
   } catch {
     return null;
   }

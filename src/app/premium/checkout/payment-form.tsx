@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { csrfHeaders } from "@/lib/client-security";
 
 export function PaymentForm({ planId }: { planId: string }) {
   const [message, setMessage] = useState("");
@@ -18,7 +19,7 @@ export function PaymentForm({ planId }: { planId: string }) {
     const data = new FormData(form);
     data.set("planId", planId);
     try {
-      const response = await fetch("/api/payments", { method: "POST", body: data });
+      const response = await fetch("/api/payments", { method: "POST", headers: await csrfHeaders(), body: data });
       const result = await response.json();
       if (!response.ok) setError(result.error ?? "Unable to submit payment.");
       else {

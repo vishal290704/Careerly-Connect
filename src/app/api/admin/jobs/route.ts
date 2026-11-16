@@ -3,6 +3,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { Job } from "@/models/Job";
+import { hasValidCsrfToken } from "@/lib/security";
 
 const jobSchema = z.object({
   companyName: z.string().min(2), role: z.string().min(2), location: z.string().min(2),
@@ -18,6 +19,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const data = jobSchema.parse(await request.json());
   await connectToDatabase();

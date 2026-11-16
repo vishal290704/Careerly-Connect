@@ -5,6 +5,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
 import { hasValidOrigin, isRateLimited } from "@/lib/security";
+import { revokeAllRefreshSessions } from "@/lib/user-auth";
 
 const schema = z.object({ token: z.string().min(32), password: z.string().min(8) });
 
@@ -23,5 +24,6 @@ export async function POST(request: Request) {
   user.passwordResetExpiresAt = undefined;
   user.sessionVersion = (user.sessionVersion ?? 0) + 1;
   await user.save();
+  await revokeAllRefreshSessions(user.id);
   return NextResponse.json({ message: "Password updated successfully." });
 }

@@ -5,8 +5,10 @@ import { getCurrentUser } from "@/lib/user-auth";
 import { Payment } from "@/models/Payment";
 import { plans } from "@/lib/plans";
 import { User } from "@/models/User";
+import { hasValidCsrfToken } from "@/lib/security";
 
 export async function POST(request: Request) {
+  if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Please log in before submitting payment." }, { status: 401 });
   const form = await request.formData();

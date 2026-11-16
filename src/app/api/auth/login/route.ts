@@ -3,7 +3,8 @@ import argon2 from "argon2";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
-import { cookieName, createUserSession } from "@/lib/user-auth";
+import { createRefreshSession, createUserSession, setUserCookies } from "@/lib/user-auth";
+import { authCookieOptions } from "@/lib/cookies";
 import { hasValidOrigin, isRateLimited } from "@/lib/security";
 
 export async function POST(request: Request) {
@@ -25,13 +26,13 @@ export async function POST(request: Request) {
   }
   user.sessionVersion = (user.sessionVersion ?? 0) + 1;
   await user.save();
+  const accessToken = await createUserSession(user.id);
+  const refreshToken = await createRefreshSession(user.id);
   const response = NextResponse.json({ message: "Logged in." });
-  response.cookies.set(cookieName, await createUserSession(user.id), {
-    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 2,
-  });
+  setUserCookies(response, accessToken, refreshToken);
   if (!contentType.includes("application/json")) {
     const redirectResponse = NextResponse.redirect(new URL("/dashboard", request.url));
-    redirectResponse.cookies.set(cookieName, await createUserSession(user.id), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 2 });
+    setUserCookies(redirectResponse, accessToken, refreshToken);
     return redirectResponse;
   }
   return response;

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { isAdmin } from "@/lib/admin-auth";
 import { connectToDatabase } from "@/lib/db";
 import { Job } from "@/models/Job";
+import { hasValidCsrfToken } from "@/lib/security";
 
 const jobSchema = z.object({
   companyName: z.string().min(2), role: z.string().min(2), location: z.string().min(2),
@@ -13,6 +14,7 @@ const jobSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   if (!mongoose.isValidObjectId(id)) return NextResponse.json({ error: "Invalid job." }, { status: 400 });
@@ -23,7 +25,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json({ job });
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   if (!mongoose.isValidObjectId(id)) return NextResponse.json({ error: "Invalid job." }, { status: 400 });

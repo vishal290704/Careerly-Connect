@@ -3,8 +3,9 @@ import { jwtVerify, SignJWT } from "jose";
 import { randomUUID } from "node:crypto";
 import { connectToDatabase } from "@/lib/db";
 import { AdminSession } from "@/models/AdminSession";
+import { adminCookieName } from "@/lib/cookies";
 
-const cookieName = "applyora_admin";
+const cookieName = adminCookieName;
 
 function secret() {
   const value = process.env.JWT_ACCESS_SECRET;
@@ -30,7 +31,7 @@ export async function isAdmin() {
   const token = (await cookies()).get(cookieName)?.value;
   if (!token) return false;
   try {
-    const { payload } = await jwtVerify(token, secret(), { issuer: "applyora", audience: "admin" });
+    const { payload } = await jwtVerify(token, secret(), { issuer: "applyora", audience: "admin", algorithms: ["HS256"] });
     if (payload.role !== "admin" || !payload.jti) return false;
     await connectToDatabase();
     return Boolean(await AdminSession.exists({ sessionId: payload.jti, revokedAt: { $exists: false }, expiresAt: { $gt: new Date() } }));
@@ -42,7 +43,7 @@ export async function isAdmin() {
 export async function revokeAdminSession(token: string | undefined) {
   if (!token) return;
   try {
-    const { payload } = await jwtVerify(token, secret(), { issuer: "applyora", audience: "admin" });
+    const { payload } = await jwtVerify(token, secret(), { issuer: "applyora", audience: "admin", algorithms: ["HS256"] });
     if (payload.jti) {
       await connectToDatabase();
       await AdminSession.updateOne({ sessionId: payload.jti }, { $set: { revokedAt: new Date() } });

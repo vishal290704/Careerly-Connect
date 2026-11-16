@@ -4,8 +4,10 @@ import { getCurrentUser } from "@/lib/user-auth";
 import { connectToDatabase } from "@/lib/db";
 import { Job } from "@/models/Job";
 import { Application } from "@/models/Application";
+import { hasValidCsrfToken } from "@/lib/security";
 
 export async function POST(request: Request) {
+  if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Please log in before applying." }, { status: 401 });
   const { jobId } = await request.json() as { jobId?: string };

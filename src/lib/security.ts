@@ -15,7 +15,35 @@ export function isRateLimited(request: Request, bucket: string, limit = 8, windo
 }
 
 export function hasValidOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  return origin === new URL(request.url).origin;
+  try {
+    const requestOrigin = new URL(request.url).origin;
+    const origin = request.headers.get("origin");
+    if (origin) return origin === requestOrigin;
+    const referer = request.headers.get("referer");
+    return Boolean(referer && new URL(referer).origin === requestOrigin);
+  } catch {
+    return false;
+  }
 }
+
+export async function createCsrfToken() {
+  const token = randomBytes(32).toString("hex");
+  (await cookies()).set("applyora_csrf", token, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24,
+  });
+  return token;
+}
+
+export async function hasValidCsrfToken(request: Request) {
+  if (!hasValidOrigin(request)) return false;
+  const header = request.headers.get("x-csrf-token");
+  const cookie = (await cookies()).get("applyora_csrf")?.value;
+  if (!header || !cookie || header.length !== cookie.length) return false;
+  return timingSafeEqual(Buffer.from(header), Buffer.from(cookie));
+}
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { cookies } from "next/headers";

@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { BrandMark } from "./brand-mark";
+import { csrfHeaders } from "@/lib/client-security";
 
 type AuthUser = { name: string; email: string };
 
@@ -26,7 +27,11 @@ export function SiteHeader() {
     if (isAdminArea) return;
     let active = true;
     async function loadUser() {
-      const response = await fetch("/api/auth/me", { cache: "no-store" });
+      let response = await fetch("/api/auth/me", { cache: "no-store" });
+      if (response.status === 401) {
+        await fetch("/api/auth/refresh?next=/", { cache: "no-store", redirect: "manual" });
+        response = await fetch("/api/auth/me", { cache: "no-store" });
+      }
       const result = await response.json();
       if (active) setUser(result.authenticated ? { name: result.name, email: result.email } : null);
     }
@@ -52,7 +57,7 @@ export function SiteHeader() {
   }, []);
 
   async function logout() {
-    await fetch(isAdminArea ? "/api/admin/logout" : "/api/auth/logout", { method: "POST" });
+    await fetch(isAdminArea ? "/api/admin/logout" : "/api/auth/logout", { method: "POST", headers: await csrfHeaders() });
     setUser(null);
     setProfileOpen(false);
     setOpen(false);

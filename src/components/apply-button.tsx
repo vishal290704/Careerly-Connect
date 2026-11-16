@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { csrfHeaders } from "@/lib/client-security";
 
 export function ApplyButton({ jobId, disabled = false }: { jobId: string; disabled?: boolean }) {
   const [message, setMessage] = useState("");
@@ -9,7 +10,7 @@ export function ApplyButton({ jobId, disabled = false }: { jobId: string; disabl
     const applicationWindow = window.open("about:blank", "_blank");
     if (applicationWindow) applicationWindow.opener = null;
     setLoading(true); setMessage("");
-    const response = await fetch("/api/applications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
+    const response = await fetch("/api/applications", { method: "POST", headers: { "Content-Type": "application/json", ...(await csrfHeaders()) }, body: JSON.stringify({ jobId }) });
     const result = await response.json();
     if (!response.ok) { applicationWindow?.close(); setMessage(result.error ?? "Unable to apply."); } else {
       setMessage("Application recorded. Opening employer site...");

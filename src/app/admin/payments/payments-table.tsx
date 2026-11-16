@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { csrfHeaders } from "@/lib/client-security";
 
 type Payment = { _id: string; planId: string; finalAmount: number; transactionId: string; status: string; createdAt: string; userId?: { name?: string; normalizedEmail?: string } };
 
@@ -9,7 +10,7 @@ export function PaymentsTable() {
   const [message, setMessage] = useState("");
   useEffect(() => { fetch("/api/admin/payments").then((response) => response.json()).then((result) => setPayments(result.payments ?? [])); }, []);
   async function review(id: string, status: "APPROVED" | "REJECTED") {
-    const response = await fetch(`/api/admin/payments/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    const response = await fetch(`/api/admin/payments/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(await csrfHeaders()) }, body: JSON.stringify({ status }) });
     const result = await response.json();
     if (!response.ok) setMessage(result.error ?? "Unable to update payment."); else setPayments((current) => current.map((payment) => payment._id === id ? { ...payment, status } : payment));
   }

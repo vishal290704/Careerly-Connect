@@ -5,10 +5,12 @@ import { connectToDatabase } from "@/lib/db";
 import { Payment } from "@/models/Payment";
 import { User } from "@/models/User";
 import { ensureReferralCode, processReferralReward } from "@/lib/referrals";
+import { hasValidCsrfToken } from "@/lib/security";
 
 const durations = { "1-month": 30, "3-months": 90, "6-months": 180 } as const;
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   if (!(await isAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   if (!mongoose.isValidObjectId(id)) return NextResponse.json({ error: "Invalid payment." }, { status: 400 });

@@ -6,12 +6,18 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim();
   await connectToDatabase();
-  const filter = { status: "PUBLISHED", ...(query ? { $or: [
-    { role: { $regex: query, $options: "i" } },
-    { companyName: { $regex: query, $options: "i" } },
-    { location: { $regex: query, $options: "i" } },
-    { category: { $regex: query, $options: "i" } },
-  ] } : {}) };
+  const escaped = query ? query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
+  const searchable = escaped ? [
+    { role: { $regex: escaped, $options: "i" } },
+    { companyName: { $regex: escaped, $options: "i" } },
+    { location: { $regex: escaped, $options: "i" } },
+    { category: { $regex: escaped, $options: "i" } },
+    { description: { $regex: escaped, $options: "i" } },
+    { requiredSkills: { $regex: escaped, $options: "i" } },
+    { workMode: { $regex: escaped, $options: "i" } },
+    { jobType: { $regex: escaped, $options: "i" } },
+  ] : [];
+  const filter = { status: "PUBLISHED", ...(searchable.length ? { $or: searchable } : {}) };
   const jobs = await Job.find(filter).sort({ publishedAt: -1, createdAt: -1 }).select("-applyUrl").lean();
   return NextResponse.json({ jobs });
 }

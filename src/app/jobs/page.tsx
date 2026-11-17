@@ -1,30 +1,37 @@
 import { Search } from "lucide-react";
 import { connectToDatabase } from "@/lib/db";
 import { Job as JobModel } from "@/models/Job";
-import { jobs as sampleJobs } from "@/lib/jobs";
 import { JobCard } from "@/components/job-card";
 
 type Props = { searchParams: Promise<{ q?: string; category?: string }> };
 
 export default async function JobsPage({ searchParams }: Props) {
   const params = await searchParams;
-  const query = params.q?.toLowerCase() ?? "";
+  const query = params.q?.trim() ?? "";
   const category = params.category;
   await connectToDatabase();
-  const records = await JobModel.find({ status: "PUBLISHED" }).sort({ publishedAt: -1, createdAt: -1 }).lean();
-  const source = records.length > 0 ? records.map((job) => ({
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const filter = {
+    status: "PUBLISHED",
+    ...(category ? { category } : {}),
+    ...(escaped ? { $or: [
+      { role: { $regex: escaped, $options: "i" } },
+      { companyName: { $regex: escaped, $options: "i" } },
+      { location: { $regex: escaped, $options: "i" } },
+      { category: { $regex: escaped, $options: "i" } },
+      { description: { $regex: escaped, $options: "i" } },
+      { requiredSkills: { $regex: escaped, $options: "i" } },
+      { workMode: { $regex: escaped, $options: "i" } },
+      { jobType: { $regex: escaped, $options: "i" } },
+    ] } : {}),
+  };
+  const records = await JobModel.find(filter).sort({ publishedAt: -1, createdAt: -1 }).lean();
+  const source = records.map((job) => ({
     id: job._id.toString(), company: job.companyName, role: job.role, location: job.location,
     mode: job.workMode, type: job.jobType, pay: job.stipend, batch: "Open to eligible applicants",
     category: job.category, posted: "Recently", verified: false,
-  })) : sampleJobs;
-  const filtered = source.filter(
-    (job) =>
-      (!query ||
-        `${job.role} ${job.company} ${job.location} ${job.category}`
-          .toLowerCase()
-          .includes(query)) &&
-      (!category || job.category === category),
-  );
+  }));
+  const filtered = source;
   return (
     <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
       <div className="max-w-2xl">

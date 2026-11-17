@@ -32,9 +32,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const user = await User.findById(payment.userId).session(session);
         if (!user) throw new Error("USER_NOT_FOUND");
         const days = durations[payment.planId as keyof typeof durations];
-        const start = user.premiumExpiresAt && user.premiumExpiresAt > new Date() ? user.premiumExpiresAt : new Date();
-        user.premiumExpiresAt = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+        const now = new Date();
+        const start = now;
+        const baseExpiration = user.premiumExpiresAt && user.premiumExpiresAt > now ? user.premiumExpiresAt : now;
+        const expiration = new Date(baseExpiration.getTime() + days * 24 * 60 * 60 * 1000);
+        user.premiumStartedAt = user.premiumStartedAt && user.premiumStartedAt < now ? user.premiumStartedAt : start;
+        user.premiumExpiresAt = expiration;
         await user.save({ session });
+        payment.subscriptionStartAt = start;
+        payment.subscriptionExpiresAt = expiration;
+        payment.approvedBy = "admin";
+        await payment.save({ session });
         await ensureReferralCode(user, session);
         await processReferralReward(user._id, payment._id, session);
       }

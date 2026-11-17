@@ -16,6 +16,9 @@ const paymentSchema = new Schema({
   status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"], default: "PENDING" },
   rejectionReason: String,
   reviewedAt: Date,
+  subscriptionStartAt: Date,
+  subscriptionExpiresAt: Date,
+  approvedBy: { type: String, trim: true },
 }, { timestamps: true });
 
 export const Payment = mongoose.models.Payment ?? mongoose.model("Payment", paymentSchema);

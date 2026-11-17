@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/db";
 import { Payment } from "@/models/Payment";
 import { hasValidCsrfToken } from "@/lib/security";
 import { z } from "zod";
+import { getPremiumStatus } from "@/lib/premium";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -14,7 +15,8 @@ export async function GET() {
   }
   await connectToDatabase();
   const now = new Date();
-  const premiumActive = Boolean(user.premiumExpiresAt && user.premiumExpiresAt > now);
+  const premiumStatus = await getPremiumStatus(user, now);
+  const premiumActive = premiumStatus.active;
   const lastPayment = await Payment.findOne({ userId: user._id }).sort({ createdAt: -1 }).lean();
   return NextResponse.json({
     authenticated: true,

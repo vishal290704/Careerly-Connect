@@ -67,11 +67,8 @@ export default async function JobsPage({ searchParams }: Props) {
         </select>
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        {filtered.slice(0, 2).map((job) => (
+        {filtered.map((job) => (
           <JobCard key={job.id} job={job} />
-        ))}
-        {filtered.slice(2).map((job) => (
-          <JobCard key={job.id} job={job} locked />
         ))}
       </div>
       {filtered.length === 0 && <p className="mt-10 rounded-2xl border bg-surface p-8 text-center text-muted">No published jobs match your search.</p>}

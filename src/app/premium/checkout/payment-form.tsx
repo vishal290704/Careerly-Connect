@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { csrfHeaders } from "@/lib/client-security";
 
-export function PaymentForm({ planId }: { planId: string }) {
+export function PaymentForm({ planId, redirect }: { planId: string; redirect?: string }) {
+  void redirect;
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);

@@ -5,10 +5,12 @@ import { connectToDatabase } from "@/lib/db";
 import { Job } from "@/models/Job";
 import { Application } from "@/models/Application";
 import { hasValidCsrfToken } from "@/lib/security";
+import { getPremiumStatus } from "@/lib/premium";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await getPremiumStatus(user)).active) return NextResponse.json({ error: "Premium subscription required." }, { status: 403 });
   const jobId = new URL(request.url).searchParams.get("jobId");
   if (jobId && !mongoose.isValidObjectId(jobId)) return NextResponse.json({ error: "Invalid job." }, { status: 400 });
   await connectToDatabase();
@@ -24,6 +26,7 @@ export async function PATCH(request: Request) {
   if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await getPremiumStatus(user)).active) return NextResponse.json({ error: "Premium subscription required." }, { status: 403 });
   const { jobId } = await request.json() as { jobId?: string };
   if (!jobId || !mongoose.isValidObjectId(jobId)) return NextResponse.json({ error: "Invalid job." }, { status: 400 });
   await connectToDatabase();
@@ -40,6 +43,7 @@ export async function POST(request: Request) {
   if (!(await hasValidCsrfToken(request))) return NextResponse.json({ error: "Invalid request." }, { status: 403 });
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Please log in before applying." }, { status: 401 });
+  if (!(await getPremiumStatus(user)).active) return NextResponse.json({ error: "Premium subscription required." }, { status: 403 });
   const { jobId } = await request.json() as { jobId?: string };
   if (!jobId || !mongoose.isValidObjectId(jobId)) return NextResponse.json({ error: "Invalid job." }, { status: 400 });
   await connectToDatabase();

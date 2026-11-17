@@ -6,9 +6,16 @@ import { JobActions } from "@/components/job-actions";
 import { jobs as sampleJobs } from "@/lib/jobs";
 import { connectToDatabase } from "@/lib/db";
 import { Job } from "@/models/Job";
+import { getCurrentUser } from "@/lib/user-auth";
+import { getPremiumStatus } from "@/lib/premium";
+import { redirect } from "next/navigation";
 
 export default async function JobDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const user = await getCurrentUser();
+  if (!user) redirect(`/login?next=/jobs/${encodeURIComponent(id)}`);
+  const premium = await getPremiumStatus(user);
+  if (!premium.active) redirect(`/premium?redirect=/jobs/${encodeURIComponent(id)}&reason=premium-required`);
   let job: { id: string; company: string; role: string; location: string; mode: "Remote" | "Hybrid" | "On-site"; type: "Internship" | "Full-time"; pay: string; batch: string; verified?: boolean; description?: string; applyUrl?: string } | undefined;
   const sample = sampleJobs.find((item) => item.id === id);
   if (sample) job = sample;

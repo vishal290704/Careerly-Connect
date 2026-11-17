@@ -7,6 +7,16 @@ import { SavedJob } from "@/models/SavedJob";
 import { Payment } from "@/models/Payment";
 import { ProfileEditor } from "@/components/profile-editor";
 import mongoose from "mongoose";
+import { getPremiumStatus } from "@/lib/premium";
+ 
+function formatSubscriptionDate(date: Date | undefined) {
+  if (!date) return "";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
 import "@/models/Job";
 
 export default async function DashboardPage() {
@@ -20,7 +30,8 @@ export default async function DashboardPage() {
   }
 
   const now = new Date();
-  const premium = Boolean(user.premiumExpiresAt && user.premiumExpiresAt > now);
+  const premiumStatus = await getPremiumStatus(user, now);
+  const premium = premiumStatus.active;
   const [applications, savedJobs, lastPayment] = await Promise.all([
     Application.find({ userId: user._id }).populate("jobId", "companyName role location").sort({ updatedAt: -1 }).lean(),
     SavedJob.find({ userId: user._id }).populate("jobId", "companyName role location").sort({ savedAt: -1 }).lean(),
@@ -30,9 +41,7 @@ export default async function DashboardPage() {
   const activeApplications = applications.filter((application) => application.status === "APPLIED" || application.status === "RECORDED");
   const visibleApplications = applications.slice(0, 5);
   const visibleSavedJobs = savedJobs.slice(0, 5);
-  const remainingDays = premium && user.premiumExpiresAt
-    ? Math.max(0, Math.ceil((user.premiumExpiresAt.getTime() - now.getTime()) / 86400000))
-    : 0;
+  const remainingDays = premiumStatus.remainingDays;
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
@@ -82,7 +91,7 @@ export default async function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Subscription</p>
             <h3 className="mt-3 text-lg font-semibold">{premium ? "Premium Plan" : "Free Plan"}</h3>
             <p className="mt-1 text-sm text-muted">Status: {premium ? "Active" : lastPayment?.status === "PENDING" ? "Pending" : lastPayment?.status === "REJECTED" ? "Rejected" : lastPayment?.status === "APPROVED" ? "Expired" : "Active"}</p>
-            {premium ? <dl className="mt-4 space-y-2 text-sm"><div className="flex justify-between gap-3"><dt className="text-muted">Expires</dt><dd>{user.premiumExpiresAt?.toLocaleDateString()}</dd></div><div className="flex justify-between gap-3"><dt className="text-muted">Remaining</dt><dd>{remainingDays} days</dd></div></dl> : <p className="mt-4 text-sm leading-6 text-muted">Upgrade to unlock every opportunity.</p>}
+            {premium ? <dl className="mt-4 space-y-2 text-sm"><div className="flex justify-between gap-3"><dt className="text-muted">Expires</dt><dd>{formatSubscriptionDate(premiumStatus.expiresAt ?? undefined)}</dd></div><div className="flex justify-between gap-3"><dt className="text-muted">Remaining</dt><dd>{remainingDays} days</dd></div></dl> : <p className="mt-4 text-sm leading-6 text-muted">Upgrade to unlock every opportunity.</p>}
             {lastPayment && <p className="mt-4 text-xs text-muted">Last purchased: {lastPayment.planId.replace("-", " ")} Premium</p>}
             {!premium && <Link href="/premium" className="mt-5 block rounded-xl bg-teal px-4 py-3 text-center text-sm font-semibold text-white">Upgrade to Premium</Link>}
           </div>

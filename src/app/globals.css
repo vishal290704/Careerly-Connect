@@ -25,3 +25,36 @@ body {
 @layer utilities {
   .text-balance { text-wrap: balance; }
 }
+
+@keyframes routeProgress {
+  0% { transform: scaleX(0); }
+  50% { transform: scaleX(0.72); }
+  100% { transform: scaleX(1); opacity: 0.2; }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, hsl(var(--surface) / 0.72), transparent);
+  animation: skeletonShimmer 1.35s ease-in-out infinite;
+}
+
+@keyframes skeletonShimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

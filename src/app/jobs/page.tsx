@@ -1,7 +1,8 @@
-import { Search } from "lucide-react";
 import { connectToDatabase } from "@/lib/db";
 import { Job as JobModel } from "@/models/Job";
 import { JobCard } from "@/components/job-card";
+import { JobSearchForm } from "@/components/job-search-form";
+import { Suspense } from "react";
 
 type Props = { searchParams: Promise<{ q?: string; category?: string }> };
 
@@ -45,18 +46,9 @@ export default async function JobsPage({ searchParams }: Props) {
           A considered collection of roles for people building what comes next.
         </p>
       </div>
-      <form className="mt-9 flex max-w-3xl items-center gap-3 rounded-2xl border bg-surface p-2 shadow-soft">
-        <Search className="ml-3 text-muted" size={19} />
-        <input
-          name="q"
-          defaultValue={params.q}
-          placeholder="Search role, company, skill or location"
-          className="min-w-0 flex-1 bg-transparent px-2 py-3 text-sm outline-none placeholder:text-muted"
-        />
-        <button className="rounded-xl bg-teal px-5 py-3 text-sm font-semibold text-white">
-          Search
-        </button>
-      </form>
+      <Suspense fallback={<div className="mt-9 h-16 max-w-3xl rounded-2xl border bg-surface" />}>
+        <JobSearchForm defaultValue={params.q} category={category} />
+      </Suspense>
       <div className="mt-12 flex items-center justify-between border-b pb-4">
         <p className="text-sm text-muted">
           {filtered.length} opportunities matching your search

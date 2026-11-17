@@ -15,4 +15,8 @@ const jobSchema = new Schema({
   publishedAt: Date,
 }, { timestamps: true });
 
+jobSchema.index({ status: 1, publishedAt: -1 });
+jobSchema.index({ status: 1, category: 1, publishedAt: -1 });
+jobSchema.index({ role: 1, companyName: 1, location: 1 });
+
 export const Job = mongoose.models.Job ?? mongoose.model("Job", jobSchema);

@@ -18,6 +18,8 @@ export async function GET(request: Request) {
     { jobType: { $regex: escaped, $options: "i" } },
   ] : [];
   const filter = { status: "PUBLISHED", ...(searchable.length ? { $or: searchable } : {}) };
-  const jobs = await Job.find(filter).sort({ publishedAt: -1, createdAt: -1 }).select("-applyUrl").lean();
-  return NextResponse.json({ jobs });
+  const jobs = await Job.find(filter).sort({ publishedAt: -1, createdAt: -1 }).select("companyName role location stipend workMode jobType category description requiredSkills status publishedAt").lean();
+  const response = NextResponse.json({ jobs });
+  response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
+  return response;
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { csrfHeaders } from "@/lib/client-security";
+import { LoadingButton } from "@/components/loading-button";
 
 type Props = {
   name: string;
@@ -43,7 +44,7 @@ export function ProfileEditor(props: Props) {
         <label className="block text-xs text-muted">Branch<input name="branch" defaultValue={props.branch} className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-ink" /></label>
         <label className="block text-xs text-muted">Location<input name="location" defaultValue={props.location} className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-ink" /></label>
         {message && <p className="text-xs text-muted" role="status">{message}</p>}
-        <button disabled={loading} className="rounded-lg bg-teal px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">{loading ? "Saving..." : "Save changes"}</button>
+        <LoadingButton type="submit" loading={loading} loadingText="Saving..." className="rounded-lg bg-teal px-4 py-2 text-xs font-semibold text-white">Save changes</LoadingButton>
       </form>}
     </div>
   );

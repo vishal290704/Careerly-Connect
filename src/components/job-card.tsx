@@ -6,6 +6,7 @@ import { Bookmark, CheckCircle2, LockKeyhole, MapPin } from "lucide-react";
 import type { Job } from "@/lib/jobs";
 import { CompanyAvatar } from "./company-avatar";
 import { csrfHeaders } from "@/lib/client-security";
+import { LoadingSpinner } from "@/components/loading-button";
 
 export function JobCard({ job, locked = false }: { job: Job; locked?: boolean }) {
   void locked;
@@ -81,7 +82,7 @@ export function JobCard({ job, locked = false }: { job: Job; locked?: boolean })
           </div>
         </div>
         <button type="button" disabled={loading} aria-label={saved ? `Unsave ${job.role}` : `Save ${job.role}`} aria-pressed={saved} onClick={toggleSaved} className={`transition hover:text-teal ${saved ? "text-teal" : "text-muted"}`}>
-          <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
+          {loading ? <LoadingSpinner size={18} /> : <Bookmark size={18} fill={saved ? "currentColor" : "none"} />}
         </button>
       </div>
       <div className="mt-5 flex items-center gap-1.5 text-sm text-muted"><MapPin size={15} />{job.location}</div>

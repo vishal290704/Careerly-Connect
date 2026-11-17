@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bookmark, CheckCircle2, ExternalLink, X } from "lucide-react";
 import { csrfHeaders } from "@/lib/client-security";
 import { useRouter } from "next/navigation";
+import { LoadingButton } from "@/components/loading-button";
 
 type Props = { jobId: string; applyUrl: string; jobTitle: string; companyName: string };
 
@@ -97,17 +98,17 @@ export function JobActions({ jobId, applyUrl, jobTitle, companyName }: Props) {
   return (
     <>
       <div className="flex flex-wrap gap-3">
-        <button type="button" onClick={applyNow} className="inline-flex items-center gap-2 rounded-xl bg-teal px-5 py-3 text-sm font-semibold text-white">Apply now <ExternalLink size={15} /></button>
+        <button type="button" onClick={applyNow} className="inline-flex items-center gap-2 rounded-xl bg-teal px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98]">Apply now <ExternalLink size={15} /></button>
         {applicationStatus === "APPLIED" ? (
-          <button type="button" disabled={loading} onClick={withdraw} className="rounded-xl border px-5 py-3 text-sm font-semibold hover:border-red-700 hover:text-red-700">Withdraw application</button>
+          <LoadingButton loading={loading} loadingText="Withdrawing..." onClick={withdraw} className="rounded-xl border px-5 py-3 text-sm font-semibold hover:border-red-700 hover:text-red-700">Withdraw application</LoadingButton>
         ) : applicationStatus === "WITHDRAWN" ? (
-          <button type="button" disabled={loading} onClick={markApplied} className="rounded-xl border border-teal px-5 py-3 text-sm font-semibold text-teal">Apply again</button>
+          <LoadingButton loading={loading} loadingText="Submitting..." onClick={markApplied} className="rounded-xl border border-teal px-5 py-3 text-sm font-semibold text-teal">Apply again</LoadingButton>
         ) : (
-          <button type="button" disabled={loading} onClick={markApplied} className="rounded-xl border px-5 py-3 text-sm font-semibold">Mark as applied</button>
+          <LoadingButton loading={loading} loadingText="Submitting..." onClick={markApplied} className="rounded-xl border px-5 py-3 text-sm font-semibold">Mark as applied</LoadingButton>
         )}
-        <button type="button" disabled={loading} aria-pressed={saved} onClick={toggleSaved} className={`inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold ${saved ? "border-teal text-teal" : ""}`}>
+        <LoadingButton loading={loading} loadingText={saved ? "Removing..." : "Saving..."} aria-pressed={saved} onClick={toggleSaved} className={`inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold ${saved ? "border-teal text-teal" : ""}`}>
           <Bookmark size={16} fill={saved ? "currentColor" : "none"} /> {saved ? "Saved" : "Save"}
-        </button>
+        </LoadingButton>
       </div>
       {applicationStatus && <p className="mt-3 text-xs font-semibold text-muted">{applicationStatus === "APPLIED" ? <span className="inline-flex items-center gap-1 text-teal"><CheckCircle2 size={14} /> Applied</span> : "Withdrawn"}</p>}
       {message && <p className="mt-2 text-xs text-muted" role="status">{message}</p>}
@@ -125,7 +126,7 @@ export function JobActions({ jobId, applyUrl, jobTitle, companyName }: Props) {
             <p className="mt-5 leading-7 text-muted">You opened the application page for <strong className="text-ink">{jobTitle}</strong> at <strong className="text-ink">{companyName}</strong>. Did you submit your application?</p>
             {applicationStatus && <p className="mt-3 text-sm font-semibold text-teal">Current status: {applicationStatus}</p>}
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              <button type="button" disabled={loading} onClick={markApplied} className="rounded-xl bg-teal px-4 py-3 text-sm font-semibold text-white disabled:opacity-60">Yes, I applied</button>
+              <LoadingButton loading={loading} loadingText="Submitting..." onClick={markApplied} className="rounded-xl bg-teal px-4 py-3 text-sm font-semibold text-white">Yes, I applied</LoadingButton>
               <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl border px-4 py-3 text-sm font-semibold">Not yet</button>
             </div>
           </section>

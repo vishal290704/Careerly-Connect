@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { csrfHeaders } from "@/lib/client-security";
+import { LoadingButton } from "@/components/loading-button";
 
 export function PaymentForm({ planId, redirect }: { planId: string; redirect?: string }) {
   void redirect;
@@ -26,7 +27,7 @@ export function PaymentForm({ planId, redirect }: { planId: string; redirect?: s
       else {
         setMessage(result.message);
         form.reset();
-        setTimeout(() => router.push("/dashboard"), 900);
+        router.push("/dashboard");
       }
     } catch {
       setError("Unable to submit payment. Please try again.");
@@ -35,5 +36,5 @@ export function PaymentForm({ planId, redirect }: { planId: string; redirect?: s
     }
   }
 
-  return <form onSubmit={submit} className="mt-6 space-y-4"><label className="block text-sm font-medium">UPI ID<input name="upiId" required placeholder="name@bank" className="mt-2 w-full rounded-xl border bg-transparent px-4 py-3 outline-none focus:border-teal" /></label><label className="block text-sm font-medium">Transaction ID / UTR<input name="transactionId" required className="mt-2 w-full rounded-xl border bg-transparent px-4 py-3 outline-none focus:border-teal" /></label><label className="block text-sm font-medium">Referral code (optional)<input name="referralCode" placeholder="AYUREF7K2Q" className="mt-2 w-full rounded-xl border bg-transparent px-4 py-3 outline-none focus:border-teal" /></label><label className="block text-sm font-medium">Payment screenshot<input name="paymentProof" type="file" accept="image/png,image/jpeg,image/webp" required className="mt-2 block w-full rounded-xl border bg-transparent px-4 py-3 text-sm" /></label>{error && <p className="text-sm text-red-700">{error}</p>}{message && <p className="text-sm text-teal">{message}</p>}<button disabled={loading} className="w-full rounded-xl bg-teal px-4 py-3 font-semibold text-white disabled:opacity-60">{loading ? "Submitting..." : "Submit payment for verification"}</button></form>;
+  return <form onSubmit={submit} className="mt-6 space-y-4"><label className="block text-sm font-medium">UPI ID<input name="upiId" required placeholder="name@bank" className="mt-2 w-full rounded-xl border bg-transparent px-4 py-3 outline-none focus:border-teal" /></label><label className="block text-sm font-medium">Transaction ID / UTR<input name="transactionId" required className="mt-2 w-full rounded-xl border bg-transparent px-4 py-3 outline-none focus:border-teal" /></label><label className="block text-sm font-medium">Referral code (optional)<input name="referralCode" placeholder="AYUREF7K2Q" className="mt-2 w-full rounded-xl border bg-transparent px-4 py-3 outline-none focus:border-teal" /></label><label className="block text-sm font-medium">Payment screenshot<input name="paymentProof" type="file" accept="image/png,image/jpeg,image/webp" required className="mt-2 block w-full rounded-xl border bg-transparent px-4 py-3 text-sm" /></label>{error && <p className="text-sm text-red-700">{error}</p>}{message && <p className="text-sm text-teal">{message}</p>}<LoadingButton type="submit" loading={loading} loadingText="Verifying payment..." className="w-full rounded-xl bg-teal px-4 py-3 font-semibold text-white">Submit payment for verification</LoadingButton></form>;
 }

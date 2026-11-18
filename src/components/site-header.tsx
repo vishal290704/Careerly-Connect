@@ -27,13 +27,36 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [adminAuthenticated, setAdminAuthenticated] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
   const isAdminArea = pathname.startsWith("/admin");
 
   useEffect(() => {
-    if (isAdminArea) return;
+    if (isAdminArea) {
+      let active = true;
+      fetch("/api/admin/session", { cache: "no-store" })
+        .then(async (response) => response.ok ? response.json() : { authenticated: false })
+        .then((result) => {
+          if (active) setAdminAuthenticated(Boolean(result.authenticated));
+        })
+        .catch(() => {
+          if (active) setAdminAuthenticated(false);
+        });
+      const refresh = () => {
+        fetch("/api/admin/session", { cache: "no-store" })
+          .then(async (response) => response.ok ? response.json() : { authenticated: false })
+          .then((result) => setAdminAuthenticated(Boolean(result.authenticated)))
+          .catch(() => setAdminAuthenticated(false));
+      };
+      window.addEventListener("applyora-admin-auth-change", refresh);
+      return () => {
+        active = false;
+        window.removeEventListener("applyora-admin-auth-change", refresh);
+      };
+    }
+    setAdminAuthenticated(false);
     let active = true;
 
     async function loadUser() {
@@ -79,14 +102,17 @@ export function SiteHeader() {
       headers: await csrfHeaders(),
     });
     setUser(null);
+    setAdminAuthenticated(false);
     setProfileOpen(false);
     setOpen(false);
     broadcastAuthChange();
+    if (isAdminArea) window.dispatchEvent(new Event("applyora-admin-auth-change"));
     router.push("/");
     router.refresh();
   }
 
   const initial = user?.name.trim().charAt(0).toUpperCase() || "?";
+  const showAdminNavigation = isAdminArea && pathname !== "/admin/login" && adminAuthenticated;
   const navLinkClass = (href: string) =>
     `relative py-2 text-sm transition after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:rounded-full after:bg-teal after:transition-transform ${
       pathname === href || (href !== "/" && pathname.startsWith(href))
@@ -118,11 +144,11 @@ export function SiteHeader() {
         <BrandMark />
 
         <nav aria-label="Primary navigation" className="hidden items-center gap-7 text-sm md:flex md:ml-10 lg:ml-14">
-          {isAdminArea ? adminLinks : publicLinks}
+          {showAdminNavigation ? adminLinks : isAdminArea ? null : publicLinks}
         </nav>
 
         <div className="ml-auto hidden items-center gap-3 md:flex">
-          {isAdminArea ? (
+          {showAdminNavigation ? (
             <button
               onClick={logout}
               className="rounded-full border px-4 py-2.5 text-sm font-semibold text-muted transition hover:border-teal hover:text-ink"
@@ -188,7 +214,7 @@ export function SiteHeader() {
       {open && (
         <div className="relative z-50 border-t bg-surface px-5 py-5 shadow-sm md:hidden">
           <nav aria-label="Mobile navigation" className="flex flex-col gap-1 text-sm">
-            {isAdminArea ? (
+            {showAdminNavigation ? (
               <>
                 {[
                   ["/admin/dashboard", "Overview", BriefcaseBusiness],

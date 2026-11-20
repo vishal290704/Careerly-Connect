@@ -1,0 +1,50 @@
+
+name: ApplyOra CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+# Cancel older runs for the same PR
+concurrency:
+  group: applyora-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-check:
+    name: Build and Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test -- --run
+
+      - name: Production build
+        run: npm run build
+        env:
+          # Use CI-only dummy values where needed.
+          # Never expose production secrets in PR workflows.
+          MONGODB_URI: mongodb://127.0.0.1:27017/applyora_test
+          JWT_SECRET: ci-only-test-secret-not-for-production

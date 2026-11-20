@@ -24,10 +24,11 @@ function broadcastAuthChange() {
 }
 
 export function SiteHeader() {
-  const [open, setOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [openRoute, setOpenRoute] = useState<string | null>(null);
+  const [profileRoute, setProfileRoute] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [adminAuthenticated, setAdminAuthenticated] = useState(false);
+  const [userStatus, setUserStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+  const [adminStatus, setAdminStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const pathname = usePathname();
   const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
@@ -36,19 +37,25 @@ export function SiteHeader() {
   useEffect(() => {
     if (isAdminArea) {
       let active = true;
+      let requestSequence = 0;
       fetch("/api/admin/session", { cache: "no-store" })
         .then(async (response) => response.ok ? response.json() : { authenticated: false })
         .then((result) => {
-          if (active) setAdminAuthenticated(Boolean(result.authenticated));
+          if (active) setAdminStatus(result.authenticated ? "authenticated" : "unauthenticated");
         })
         .catch(() => {
-          if (active) setAdminAuthenticated(false);
+          if (active) setAdminStatus("unauthenticated");
         });
       const refresh = () => {
+        const sequence = ++requestSequence;
         fetch("/api/admin/session", { cache: "no-store" })
           .then(async (response) => response.ok ? response.json() : { authenticated: false })
-          .then((result) => setAdminAuthenticated(Boolean(result.authenticated)))
-          .catch(() => setAdminAuthenticated(false));
+          .then((result) => {
+            if (active && sequence === requestSequence) setAdminStatus(result.authenticated ? "authenticated" : "unauthenticated");
+          })
+          .catch(() => {
+            if (active && sequence === requestSequence) setAdminStatus("unauthenticated");
+          });
       };
       window.addEventListener("applyora-admin-auth-change", refresh);
       return () => {
@@ -56,17 +63,31 @@ export function SiteHeader() {
         window.removeEventListener("applyora-admin-auth-change", refresh);
       };
     }
-    setAdminAuthenticated(false);
     let active = true;
 
     async function loadUser() {
-      let response = await fetch("/api/auth/me", { cache: "no-store" });
-      if (response.status === 401) {
-        await fetch("/api/auth/refresh?next=/", { cache: "no-store", redirect: "manual" });
-        response = await fetch("/api/auth/me", { cache: "no-store" });
+      try {
+        let response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (response.status === 401) {
+          await fetch("/api/auth/refresh?next=/", { cache: "no-store", redirect: "manual" });
+          response = await fetch("/api/auth/me", { cache: "no-store" });
+        }
+        const result = await response.json();
+        if (active) {
+          if (result.authenticated) {
+            setUser({ name: result.name, email: result.email });
+            setUserStatus("authenticated");
+          } else {
+            setUser(null);
+            setUserStatus("unauthenticated");
+          }
+        }
+      } catch {
+        if (active) {
+          setUser(null);
+          setUserStatus("unauthenticated");
+        }
       }
-      const result = await response.json();
-      if (active) setUser(result.authenticated ? { name: result.name, email: result.email } : null);
     }
 
     void loadUser();
@@ -84,13 +105,8 @@ export function SiteHeader() {
   }, [isAdminArea, pathname]);
 
   useEffect(() => {
-    setOpen(false);
-    setProfileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     function close(event: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) setProfileOpen(false);
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) setProfileRoute(null);
     }
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -102,17 +118,20 @@ export function SiteHeader() {
       headers: await csrfHeaders(),
     });
     setUser(null);
-    setAdminAuthenticated(false);
-    setProfileOpen(false);
-    setOpen(false);
+    setUserStatus("unauthenticated");
+    setAdminStatus("unauthenticated");
+    setProfileRoute(null);
+    setOpenRoute(null);
     broadcastAuthChange();
     if (isAdminArea) window.dispatchEvent(new Event("applyora-admin-auth-change"));
     router.push("/");
     router.refresh();
   }
 
+  const open = openRoute === pathname;
+  const profileOpen = profileRoute === pathname;
   const initial = user?.name.trim().charAt(0).toUpperCase() || "?";
-  const showAdminNavigation = isAdminArea && pathname !== "/admin/login" && adminAuthenticated;
+  const showAdminNavigation = isAdminArea && pathname !== "/admin/login" && adminStatus === "authenticated";
   const navLinkClass = (href: string) =>
     `relative py-2 text-sm transition after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:rounded-full after:bg-teal after:transition-transform ${
       pathname === href || (href !== "/" && pathname.startsWith(href))
@@ -155,12 +174,12 @@ export function SiteHeader() {
             >
               Sign out
             </button>
-          ) : user ? (
+          ) : userStatus === "authenticated" && user ? (
             <div ref={profileRef} className="relative">
               <button
                 aria-label="Open profile menu"
                 aria-expanded={profileOpen}
-                onClick={() => setProfileOpen((current) => !current)}
+                onClick={() => setProfileRoute((current) => current === pathname ? null : pathname)}
                 className="flex h-11 items-center gap-2 rounded-full border bg-surface pl-1 pr-3 shadow-sm transition hover:border-teal"
               >
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-teal font-semibold text-white">{initial}</span>
@@ -174,16 +193,16 @@ export function SiteHeader() {
                     <p className="mt-1 truncate text-sm text-muted">{user.email}</p>
                   </div>
                   <div className="mt-2 space-y-1">
-                    <Link href="/dashboard" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
+                    <Link href="/dashboard" onClick={() => setProfileRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
                       <UserRound size={16} className="text-teal" /> Profile
                     </Link>
-                    <Link href="/dashboard#applications" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
+                    <Link href="/dashboard#applications" onClick={() => setProfileRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
                       <FileText size={16} className="text-teal" /> My applications
                     </Link>
-                    <Link href="/dashboard#saved" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
+                    <Link href="/dashboard#saved" onClick={() => setProfileRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
                       <Bookmark size={16} className="text-teal" /> Saved jobs
                     </Link>
-                    <Link href="/premium" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
+                    <Link href="/premium" onClick={() => setProfileRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-secondary">
                       <Crown size={16} className="text-teal" /> Subscription
                     </Link>
                     <button onClick={logout} className="mt-1 w-full rounded-lg px-3 py-2.5 text-left text-sm text-red-700 hover:bg-secondary">
@@ -205,7 +224,7 @@ export function SiteHeader() {
           className="ml-auto grid h-10 w-10 place-items-center rounded-full border bg-surface md:hidden"
           aria-label="Toggle menu"
           aria-expanded={open}
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => setOpenRoute((current) => current === pathname ? null : pathname)}
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -223,7 +242,7 @@ export function SiteHeader() {
                   ["/admin/payments", "Payments", Crown],
                   ["/admin/users", "Users", Users],
                 ].map(([href, label, Icon]) => (
-                  <Link key={String(href)} href={String(href)} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary">
+                  <Link key={String(href)} href={String(href)} onClick={() => setOpenRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary">
                     <Icon size={17} className="text-teal" /> {String(label)}
                   </Link>
                 ))}
@@ -231,21 +250,21 @@ export function SiteHeader() {
               </>
             ) : (
               <>
-                <Link href="/jobs" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><BriefcaseBusiness size={17} className="text-teal" /> Find jobs</Link>
-                <Link href="/premium" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><Crown size={17} className="text-teal" /> Premium</Link>
-                <Link href="/#how-it-works" onClick={() => setOpen(false)} className="rounded-lg px-3 py-3 hover:bg-secondary">How it works</Link>
-                {user ? (
+                <Link href="/jobs" onClick={() => setOpenRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><BriefcaseBusiness size={17} className="text-teal" /> Find jobs</Link>
+                <Link href="/premium" onClick={() => setOpenRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><Crown size={17} className="text-teal" /> Premium</Link>
+                <Link href="/#how-it-works" onClick={() => setOpenRoute(null)} className="rounded-lg px-3 py-3 hover:bg-secondary">How it works</Link>
+                {userStatus === "authenticated" && user ? (
                   <>
-                    <Link href="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><UserRound size={17} className="text-teal" /> Profile</Link>
-                    <Link href="/dashboard#applications" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><FileText size={17} className="text-teal" /> My applications</Link>
-                    <Link href="/dashboard#saved" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><Bookmark size={17} className="text-teal" /> Saved jobs</Link>
+                    <Link href="/dashboard" onClick={() => setOpenRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><UserRound size={17} className="text-teal" /> Profile</Link>
+                    <Link href="/dashboard#applications" onClick={() => setOpenRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><FileText size={17} className="text-teal" /> My applications</Link>
+                    <Link href="/dashboard#saved" onClick={() => setOpenRoute(null)} className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-secondary"><Bookmark size={17} className="text-teal" /> Saved jobs</Link>
                     <p className="px-3 pt-2 text-xs text-muted">{user.email}</p>
                     <button onClick={logout} className="mt-1 rounded-lg px-3 py-3 text-left text-red-700 hover:bg-secondary">Log out</button>
                   </>
                 ) : (
                   <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-4">
-                    <Link href="/login" onClick={() => setOpen(false)} className="rounded-xl border px-4 py-3 text-center font-semibold">Log in</Link>
-                    <Link href="/signup" onClick={() => setOpen(false)} className="rounded-xl bg-teal px-4 py-3 text-center font-semibold text-white">Create account</Link>
+                    <Link href="/login" onClick={() => setOpenRoute(null)} className="rounded-xl border px-4 py-3 text-center font-semibold">Log in</Link>
+                    <Link href="/signup" onClick={() => setOpenRoute(null)} className="rounded-xl bg-teal px-4 py-3 text-center font-semibold text-white">Create account</Link>
                   </div>
                 )}
               </>

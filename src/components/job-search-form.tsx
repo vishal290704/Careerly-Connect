@@ -7,27 +7,24 @@ import { LoadingButton } from "@/components/loading-button";
 
 export function JobSearchForm({ defaultValue = "", category }: { defaultValue?: string; category?: string }) {
   const [query, setQuery] = useState(defaultValue);
-  const [loading, setLoading] = useState(false);
+  const [loadingTarget, setLoadingTarget] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loading = loadingTarget !== null && searchParams.toString() !== loadingTarget;
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
-  useEffect(() => {
-    setLoading(false);
-  }, [searchParams]);
-
   function updateSearch(value: string) {
     setQuery(value);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      setLoading(true);
       const params = new URLSearchParams();
       if (value.trim()) params.set("q", value.trim());
       if (category) params.set("category", category);
+      setLoadingTarget(params.toString());
       router.replace(`/jobs${params.size ? `?${params.toString()}` : ""}`);
     }, 350);
   }
@@ -35,10 +32,10 @@ export function JobSearchForm({ defaultValue = "", category }: { defaultValue?: 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (timer.current) clearTimeout(timer.current);
-    setLoading(true);
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
     if (category) params.set("category", category);
+    setLoadingTarget(params.toString());
     router.replace(`/jobs${params.size ? `?${params.toString()}` : ""}`);
   }
 

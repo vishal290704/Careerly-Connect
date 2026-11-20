@@ -18,15 +18,24 @@ export function JobActions({ jobId, applyUrl, jobTitle, companyName }: Props) {
   const router = useRouter();
 
   useEffect(() => {
-    setModalOpen(true);
-    fetch(`/api/applications?jobId=${jobId}`, { cache: "no-store" })
+    const controller = new AbortController();
+    fetch(`/api/applications?jobId=${jobId}`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => response.ok ? response.json() : null)
-      .then((result) => setApplicationStatus(result?.application?.status ?? null))
-      .catch(() => {});
-    fetch("/api/saved-jobs", { cache: "no-store" })
+      .then((result) => {
+        if (!controller.signal.aborted) setApplicationStatus(result?.application?.status ?? null);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      });
+    fetch("/api/saved-jobs", { cache: "no-store", signal: controller.signal })
       .then(async (response) => response.ok ? response.json() : null)
-      .then((result) => setSaved((result?.jobs ?? []).some((item: { id: string }) => item.id === jobId)))
-      .catch(() => {});
+      .then((result) => {
+        if (!controller.signal.aborted) setSaved((result?.jobs ?? []).some((item: { id: string }) => item.id === jobId));
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      });
+    return () => controller.abort();
   }, [jobId]);
 
   useEffect(() => {

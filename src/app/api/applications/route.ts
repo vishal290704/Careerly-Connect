@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const session = await mongoose.startSession();
   try {
     let applyUrl = "";
-    let status = "APPLIED";
+    const status = "APPLIED";
     await session.withTransaction(async () => {
       const job = await Job.findOne({ _id: jobId, status: "PUBLISHED" }).session(session);
       if (!job) throw new Error("JOB_UNAVAILABLE");

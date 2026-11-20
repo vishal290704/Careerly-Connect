@@ -47,4 +47,7 @@ jobs:
           # Use CI-only dummy values where needed.
           # Never expose production secrets in PR workflows.
           MONGODB_URI: mongodb://127.0.0.1:27017/applyora_test
-          JWT_SECRET: ci-only-test-secret-not-for-production
+          JWT_ACCESS_SECRET: ci-only-test-secret-not-for-production
+          APP_URL: http://localhost:3000
+          ADMIN_BOOTSTRAP_USERNAME: test-admin
+          ADMIN_BOOTSTRAP_PASSWORD: test-password

@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { Job } from "@/models/Job";
 import { hasValidCsrfToken } from "@/lib/security";
+import { parseCsv } from "@/lib/csv";
 
 const importSchema = z.object({
   companyName: z.string().trim().min(2),
@@ -18,42 +19,6 @@ const importSchema = z.object({
   requiredSkills: z.array(z.string().trim()).optional().default([]),
   status: z.enum(["DRAFT", "PUBLISHED", "CLOSED"]).optional().default("PUBLISHED"),
 });
-
-function parseCsv(text: string) {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let value = "";
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (char === '"') {
-      if (quoted && text[index + 1] === '"') {
-        value += '"';
-        index += 1;
-      } else {
-        quoted = !quoted;
-      }
-    } else if (char === "," && !quoted) {
-      row.push(value);
-      value = "";
-    } else if ((char === "\n" || char === "\r") && !quoted) {
-      if (char === "\r" && text[index + 1] === "\n") index += 1;
-      row.push(value);
-      if (row.some((cell) => cell.trim() !== "")) rows.push(row);
-      row = [];
-      value = "";
-    } else {
-      value += char;
-    }
-  }
-
-  if (value !== "" || row.length) {
-    row.push(value);
-    if (row.some((cell) => cell.trim() !== "")) rows.push(row);
-  }
-  return rows;
-}
 
 function normalizeHeader(header: string) {
   return header

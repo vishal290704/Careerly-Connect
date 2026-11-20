@@ -1,4 +1,3 @@
-
 name: ApplyOra CI
 
 on:
@@ -9,15 +8,24 @@ on:
     branches:
       - main
 
-# Cancel older runs for the same PR
+permissions:
+  contents: read
+
 concurrency:
-  group: applyora-${{ github.ref }}
+  group: applyora-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   quality-check:
-    name: Build and Quality Checks
+    name: Build and quality checks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27018:27017
 
     steps:
       - name: Checkout repository
@@ -36,15 +44,21 @@ jobs:
         run: npm run lint
 
       - name: Check TypeScript
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Run tests
-        run: npm test -- --run
+        run: npm test
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27018/applyora_integration_test
+          MONGODB_URI: mongodb://127.0.0.1:27018/applyora_integration_test
+          JWT_ACCESS_SECRET: isolated-integration-secret
+          ADMIN_BOOTSTRAP_USERNAME: integration-admin
+          ADMIN_BOOTSTRAP_PASSWORD: integration-password
 
       - name: Production build
         run: npm run build
         env:
-          # Use CI-only dummy values where needed.
-          # Never expose production secrets in PR workflows.
           MONGODB_URI: mongodb://127.0.0.1:27017/applyora_test
-          JWT_SECRET: ci-only-test-secret-not-for-production
+          JWT_ACCESS_SECRET: ci-only-test-secret-not-for-production
+          ADMIN_BOOTSTRAP_USERNAME: ci-admin
+          ADMIN_BOOTSTRAP_PASSWORD: ci-only-admin-password

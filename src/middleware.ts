@@ -1,11 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
 
 async function validToken(token: string | undefined, audience: "admin" | "user") {
   const secret = process.env.JWT_ACCESS_SECRET;
   if (!token || !secret) return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), { issuer: "applyora", audience, algorithms: ["HS256"] });
+    const [header, payloadPart, signaturePart] = parts;
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+    const decodeBase64Url = (value: string) => {
+      const base64 = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
+      return Uint8Array.from(Array.from(atob(base64), (character) => character.charCodeAt(0)));
+    };
+    const payload = JSON.parse(new TextDecoder().decode(decodeBase64Url(payloadPart))) as { role?: string; iss?: string; aud?: string | string[]; exp?: number };
+    const headerPayload = JSON.parse(new TextDecoder().decode(decodeBase64Url(header))) as { alg?: string };
+    if (headerPayload.alg !== "HS256") return false;
+    const signature = decodeBase64Url(signaturePart);
+    const valid = await crypto.subtle.verify("HMAC", key, signature, encoder.encode(`${header}.${payloadPart}`));
+    if (!valid) return false;
+    if (payload.iss !== "applyora" || (payload.exp !== undefined && payload.exp * 1000 <= Date.now())) return false;
+    const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (!audiences.includes(audience)) return false;
     return audience === "admin" ? payload.role === "admin" : payload.role === "user";
   } catch {
     return false;

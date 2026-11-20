@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { csrfHeaders } from "@/lib/client-security";
-import { LoadingButton, LoadingSpinner } from "@/components/loading-button";
-import { Skeleton } from "@/components/skeleton";
+import { LoadingButton } from "@/components/loading-button";
 
 type Payment = { _id: string; planId: string; finalAmount: number; transactionId: string; status: string; createdAt: string; userId?: { name?: string; normalizedEmail?: string } };
 

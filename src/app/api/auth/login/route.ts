@@ -4,7 +4,6 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/db";
 import { User } from "@/models/User";
 import { createRefreshSession, createUserSession, setUserCookies } from "@/lib/user-auth";
-import { authCookieOptions } from "@/lib/cookies";
 import { hasValidOrigin, isRateLimited } from "@/lib/security";
 
 export async function POST(request: Request) {

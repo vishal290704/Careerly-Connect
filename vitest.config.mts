@@ -1,3 +1,4 @@
+
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
@@ -7,10 +8,19 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+
   test: {
     environment: "node",
+
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+
+    include: [
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      "src/**/*.spec.ts",
+      "src/**/*.spec.tsx",
+    ],
+
     clearMocks: true,
     restoreMocks: true,
   },
